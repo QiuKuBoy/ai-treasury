@@ -12,3 +12,6 @@ out/
 
 # Project-local Foundry toolchain
 .tools/
+
+# Python virtual environment
+.venv/
