@@ -6,6 +6,17 @@ import {Treasury} from "../src/Treasury.sol";
 import {TestBase} from "./TestBase.sol";
 
 contract TreasuryTest is TestBase {
+    event AgentAction(
+        address indexed agent,
+        string role,
+        string action,
+        address asset,
+        uint256 amount,
+        string reason,
+        bytes32 indexed proposalId
+    );
+    event ActionVetoed(bytes32 indexed proposalId, address indexed riskAgent, string reason);
+
     AgentRegistry private registry;
     Treasury private treasury;
 
@@ -58,6 +69,42 @@ contract TreasuryTest is TestBase {
         treasury.executeAction(action);
 
         assertTrue(!treasury.approvedProposals(PROPOSAL_ID));
+    }
+
+    function testExecuteEmitsAgentAction() public {
+        vm.prank(GUARDIAN);
+        treasury.approveProposal(PROPOSAL_ID);
+
+        vm.expectEmit(true, true, false, true, address(treasury));
+        emit AgentAction(RUNNER, "EXECUTE", "HOLD", address(0), 1 ether, "risk approved", PROPOSAL_ID);
+
+        vm.prank(RUNNER);
+        treasury.executeAction(_action());
+    }
+
+    function testVetoEmitsActionVetoed() public {
+        vm.expectEmit(true, true, false, true, address(treasury));
+        emit ActionVetoed(PROPOSAL_ID, GUARDIAN, "risk limit exceeded");
+
+        vm.prank(GUARDIAN);
+        treasury.vetoProposal(PROPOSAL_ID, "risk limit exceeded");
+    }
+
+    function testFifthWithdrawalStillPasses() public {
+        for (uint256 i; i < 4; ++i) {
+            vm.prank(USER);
+            treasury.withdraw(1 ether);
+        }
+        assertEq(treasury.withdrawalsInBlock(block.number), 4);
+
+        vm.prank(USER);
+        treasury.withdraw(1 ether);
+        assertEq(treasury.withdrawalsInBlock(block.number), 5);
+        assertEq(treasury.sharesOf(USER), 5 ether);
+
+        vm.prank(USER);
+        vm.expectRevert(Treasury.WithdrawalLimitExceeded.selector);
+        treasury.withdraw(1 ether);
     }
 
     function testMoreThanFiveWithdrawalsInBlockReverts() public {
