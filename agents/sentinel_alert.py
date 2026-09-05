@@ -48,12 +48,29 @@ def load_dotenv(path):
 
 def raise_alert(tag, detail):
     stamp = time.strftime("%H:%M:%S")
+    date_stamp = time.strftime("%Y-%m-%d")
+    entry = {"time": stamp, "date": date_stamp, "tag": tag, "detail": detail}
     line = "[{}][{}] {}".format(stamp, tag, detail)
     print("=" * 8 + " ALERT " + "=" * 8, flush=True)
     print(line, flush=True)
     print("=" * 22, flush=True)
     with open(ALERT_LOG, "a", encoding="utf-8") as fh:
         fh.write(line + "\n")
+    sync_web_feed(entry)
+
+
+def sync_web_feed(entry):
+    """Mirror the alert into web/alerts.json so the frontend can poll it."""
+    feed_path = ROOT / "web" / "alerts.json"
+    try:
+        history = json.loads(feed_path.read_text(encoding="utf-8")) if feed_path.is_file() else []
+    except Exception:
+        history = []
+    history.insert(0, entry)
+    history = history[:20]
+    tmp_path = feed_path.with_suffix(".json.tmp")
+    tmp_path.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path.replace(feed_path)
 
 
 def safe_event_args(log):

@@ -1017,6 +1017,14 @@ function connectWallet() {
     return "";
   }
 
+  async function loadAlerts() {
+    try {
+      const res = await fetch("./alerts.json", { cache: "no-store" });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (e) { return []; }
+  }
+
   async function renderActivity() {
     const body = document.getElementById("activity-body");
     if (!body) return;
@@ -1028,7 +1036,23 @@ function connectWallet() {
       if (ACT_FILTER === "all" || ACT_FILTER === "risk" || ACT_FILTER === "veto") push(c.vetoes, "veto");
       if (ACT_FILTER === "all") { push(c.deps, "dep"); push(c.wds, "wd"); }
       if (ACT_FILTER === "all" || ACT_FILTER === "set") { push(c.rels, "rel"); push(c.sla, "sla"); }
-      if (ACT_FILTER === "res" || ACT_FILTER === "alert") { /* Scout/Sentinel act off-chain → empty note */ }
+      if (ACT_FILTER === "res") { /* Scout acts off-chain → empty note */ }
+      if (ACT_FILTER === "alert") {
+        const alerts = await loadAlerts();
+        if (alerts.length) {
+          body.innerHTML = alerts.slice(0, 20).map(a =>
+            '<tr><td class="mono" style="color:var(--ink-3);font-size:12px">' + a.time + "</td>" +
+            '<td><span class="a-agent"><span class="a-dot" style="background:#BA7517"></span>Sentinel</span></td>' +
+            '<td><span class="tag" style="background:#FAEEDA;color:#854F0B;border:1px solid rgba(133,79,11,.25)">' + (zh() ? "告警" : "Alert") + "</span></td>" +
+            '<td class="mono">—</td><td class="reason-cell">' + a.detail + "</td>" +
+            '<td class="mono" style="color:var(--ink-3)">off-chain</td>' +
+            '<td><span class="tag" style="background:#FAEEDA;color:#854F0B">' + a.tag + "</span></td></tr>"
+          ).join("");
+          const footA = document.querySelector(".act-foot");
+          if (footA) footA.textContent = zh() ? "Sentinel 链下哨兵实时告警 · 每 15s 自动刷新" : "Sentinel off-chain watchdog alerts · auto-refresh 15s";
+          return;
+        }
+      }
       rows.sort((a, b) => b.bn - a.bn || b.li - a.li);
       rows = rows.slice(0, 60);
       if (!rows.length) {
