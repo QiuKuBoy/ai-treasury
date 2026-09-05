@@ -196,6 +196,12 @@
   .lb-rank { font-family:var(--mono); color:var(--ink-3); width:30px; font-size:12px; }
   .lb-note { font-size:12px; color:var(--ink-3); margin-top:14px; line-height:1.7; }
 
+  .acct-menu { display:none; position:absolute; right:0; top:calc(100% + 8px); background:var(--card); border:1px solid var(--line);
+               border-radius:12px; padding:5px; min-width:132px; box-shadow:0 12px 32px -8px rgba(29,27,22,.18); z-index:70; }
+  .acct-menu.open { display:block; }
+  .acct-menu button { display:block; width:100%; background:none; border:none; text-align:left; font-size:13px; font-weight:500;
+                      color:var(--ink); padding:8px 12px; border-radius:8px; cursor:pointer; transition:background .15s; white-space:nowrap; }
+  .acct-menu button:hover { background:var(--paper-2); }
   footer { border-top:1px solid var(--line); padding:36px 0 44px; color:var(--ink-3); font-size:12.5px; text-align:center; line-height:2; }
   footer b { color:var(--ink-2); font-family:var(--serif); font-weight:600; }
   footer .sep { margin:0 8px; opacity:.5; }
@@ -230,7 +236,13 @@
         <button id="lang-zh" class="on" onclick="setLang('zh')">中</button>
         <button id="lang-en" onclick="setLang('en')">EN</button>
       </div>
-      <button class="btn-connect" id="connect-btn" onclick="connectWallet()" data-i18n="connect">连接钱包</button>
+      <div style="position:relative">
+        <button class="btn-connect" id="connect-btn" onclick="connectWallet()" data-i18n="connect">连接钱包</button>
+        <div class="acct-menu" id="acct-menu">
+          <button onclick="switchAccount()" data-i18n="acct_switch">切换账户</button>
+          <button onclick="disconnectWallet()" data-i18n="acct_logout">断开连接</button>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
@@ -283,9 +295,9 @@
             </tbody>
           </table>
           <div class="your-pos">
-            <div class="pos-item"><div class="k" data-i18n="p_shares">你的份额</div><div class="v">96.89</div></div>
-            <div class="pos-item"><div class="k" data-i18n="p_value">你的市值</div><div class="v">100.00 MON</div></div>
-            <div class="pos-item"><div class="k" data-i18n="p_upl">未实现盈亏</div><div class="v up">+0.00</div></div>
+            <div class="pos-item"><div class="k" data-i18n="p_shares">你的份额</div><div class="v" id="pos-shares">96.89</div></div>
+            <div class="pos-item"><div class="k" data-i18n="p_value">你的市值</div><div class="v" id="pos-value">100.00 MON</div></div>
+            <div class="pos-item"><div class="k" data-i18n="p_upl">未实现盈亏</div><div class="v up" id="pos-upl">+0.00</div></div>
           </div>
         </div>
         <div class="card lift" style="margin-top:16px">
@@ -421,7 +433,7 @@
     <div class="card table-card">
       <table class="act-table">
         <thead><tr><th data-i18n="th_time">时间</th><th data-i18n="th_agent">智能体</th><th data-i18n="th_action">动作</th><th data-i18n="th_amount">数量</th><th data-i18n="th_reason">理由</th><th>Tx</th><th data-i18n="th_status">状态</th></tr></thead>
-        <tbody>
+        <tbody id="activity-body">
         <tr class="veto-row"><td class="mono" style="color:var(--ink-3);font-size:12px">13:42:07</td><td><span class="a-agent"><span class="a-dot" style="background:var(--red)"></span>Guardian</span></td><td><span class="tag tag-red">Veto</span></td><td class="mono">500 MON</td><td class="reason-cell" data-i18n="r1">超出单笔限额 200 MON —— 风控策略违规</td><td><a class="hash" href="#">0x3a4f…c9d2</a></td><td><span class="tag tag-red" data-i18n="s_block">已拦截</span></td></tr>
         <tr><td class="mono" style="color:var(--ink-3);font-size:12px">13:41:55</td><td><span class="a-agent"><span class="a-dot" style="background:var(--blue)"></span>Runner</span></td><td><span class="tag tag-orange">Swap</span></td><td class="mono">120 MON</td><td class="reason-cell" data-i18n="r2">依据 Scout 提案 #4821 再平衡</td><td><a class="hash" href="#">0x9b2e…f4a1</a></td><td><span class="tag tag-green" data-i18n="s_appr">已批准</span></td></tr>
         <tr><td class="mono" style="color:var(--ink-3);font-size:12px">13:41:32</td><td><span class="a-agent"><span class="a-dot" style="background:var(--clay)"></span>Scout</span></td><td><span class="tag tag-orange">Propose</span></td><td class="mono">30%</td><td class="reason-cell" data-i18n="r3">mETH 波动率飙升 —— 降低敞口至稳定币</td><td><a class="hash" href="#">0x7d1c…a08b</a></td><td><span class="tag tag-green" data-i18n="s_appr">已批准</span></td></tr>
@@ -487,7 +499,7 @@
       <div style="padding:24px 24px 0"><h3 data-i18n="d_escrow">Escrow 结算记录</h3></div>
       <table>
         <thead><tr><th data-i18n="e_task">任务 ID</th><th data-i18n="e_total">总奖励</th><th data-i18n="e_split">分配 (S/R/G/L/N)</th><th data-i18n="th_status2">状态</th><th>Tx</th></tr></thead>
-        <tbody>
+        <tbody id="escrow-body">
         <tr><td class="mono">#4821</td><td class="mono">2.31 MON</td><td class="mono" style="color:var(--ink-2)">0.92 / 0.46 / 0.35 / 0.35 / 0.23</td><td><span class="tag tag-green" data-i18n="e_rel">已释放</span></td><td><a class="hash" href="#">0x5e8b…3371</a></td></tr>
         <tr><td class="mono">#4818</td><td class="mono">1.20 MON</td><td class="mono" style="color:var(--ink-2)">0.48 / 0.24 / 0.18 / 0.18 / 0.12</td><td><span class="tag tag-green" data-i18n="e_rel">已释放</span></td><td><a class="hash" href="#">0xb219…70cd</a></td></tr>
         <tr><td class="mono">#3882</td><td class="mono">1.00 MON</td><td class="mono" style="color:var(--ink-3)" data-i18n="e_fail">—— 任务失败 ——</td><td><span class="tag tag-red" data-i18n="e_slash">已罚没 −0.5</span></td><td><a class="hash" href="#">0x02bc…d814</a></td></tr>
@@ -508,7 +520,7 @@
 const I18N = {
   zh: {
     nav_vault:'金库', nav_agents:'智能体', nav_activity:'活动流', nav_dashboard:'仪表盘',
-    net:'Monad 测试网', connect:'连接钱包',
+    net:'Monad 测试网', connect:'连接钱包', acct_switch:'切换账户', acct_logout:'断开连接',
     v_eyebrow:'五智能体 · 链上金库',
     v_h1:'让 AI 管钱，<br>但每一笔都经得起审计。',
     v_sub:'五智能体分工制衡的链上金库。研究、执行、风控、结算、告警各司其职，Guardian 持有一票否决权。部署于 Monad，Chain 10143。',
@@ -566,7 +578,7 @@ const I18N = {
   },
   en: {
     nav_vault:'Vault', nav_agents:'Agents', nav_activity:'Activity', nav_dashboard:'Dashboard',
-    net:'Monad Testnet', connect:'Connect Wallet',
+    net:'Monad Testnet', connect:'Connect Wallet', acct_switch:'Switch account', acct_logout:'Disconnect',
     v_eyebrow:'Five agents · one vault',
     v_h1:'Let AI manage money —<br>with every move on the record.',
     v_sub:'An on-chain vault run by five agents with separation of powers. Research, execution, risk, settlement and alerts — Guardian holds veto power. Deployed on Monad, Chain 10143.',
@@ -831,6 +843,255 @@ function connectWallet() {
 
   refresh();
   setInterval(refresh, 15000);
+})();
+</script>
+<script>
+/* ===== Account switching + Activity/Agents/Dashboard live feeds + per-user records ===== */
+(function () {
+  if (!window.ethers) return;
+  const RPC = "https://testnet-rpc.monad.xyz";
+  const EXPLORER = "https://testnet.monadexplorer.com";
+  const A = {
+    Treasury: "0xE7899C255Cdcb93B1Da6b3B0Ba36853879Cf0654",
+    Escrow: "0xB189518c2D622B9cb0ccEcdc8fE1CefeD93eD49c"
+  };
+  const AGENTS = {
+    "0xd1a28d296050bcc78b56af2f4d8a2d3245994b61": ["Scout", "var(--clay)"],
+    "0xe0fcc0b99692b136ec62819e5b059b850fe93bf1": ["Runner", "var(--blue)"],
+    "0x4bbc3d1f2e74ac925a59ec49c95b7caa4fc672a2": ["Guardian", "var(--red)"],
+    "0xb1ab6503715945c86821ddbddbc03bd03b5f2db54": ["Ledger", "var(--green)"],
+    "0x8d961f543a616dd5f7a3c8f3a5bd1fe941374a56": ["Sentinel", "var(--amber)"]
+  };
+  const TREASURY_ABI = [
+    "function sharesOf(address) view returns (uint256)",
+    "function nav() view returns (uint256)",
+    "event Deposit(address indexed user, uint256 amount, uint256 shares)",
+    "event Withdraw(address indexed user, uint256 shares, uint256 amount)",
+    "event AgentAction(address indexed agent, string role, string action, address asset, uint256 amount, string reason, bytes32 indexed proposalId)",
+    "event ActionVetoed(bytes32 indexed proposalId, address indexed riskAgent, string reason)"
+  ];
+  const ESCROW_ABI = [
+    "event RewardReleased(uint256 indexed taskId, address[] agents, uint256[] amounts)",
+    "event Slashed(uint256 indexed taskId, uint256 amount)"
+  ];
+  const provider = new ethers.JsonRpcProvider(RPC);
+  const treasury = new ethers.Contract(A.Treasury, TREASURY_ABI, provider);
+  const escrow = new ethers.Contract(A.Escrow, ESCROW_ABI, provider);
+  const fmt = (v, d) => { const n = parseFloat(ethers.formatEther(v)); return n.toLocaleString("en-US", { maximumFractionDigits: d == null ? 4 : d }); };
+  const short = h => h.slice(0, 6) + "…" + h.slice(-4);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const zh = () => (typeof LANG === "undefined") || LANG === "zh";
+
+  /* ---------- wallet connect / switch / disconnect ---------- */
+  let USER_ADDR = null;
+  const menu = () => document.getElementById("acct-menu");
+  const connBtn = () => document.getElementById("connect-btn");
+
+  function setUser(addr) {
+    USER_ADDR = addr;
+    const b = connBtn();
+    b.classList.add("connected");
+    b.textContent = short(addr);
+    updateMyPosition();
+  }
+  function clearUser() {
+    USER_ADDR = null;
+    const b = connBtn();
+    b.classList.remove("connected");
+    b.textContent = I18N[LANG].connect;
+    document.getElementById("pos-shares").textContent = "—";
+    document.getElementById("pos-value").textContent = "—";
+    document.getElementById("pos-upl").textContent = "—";
+  }
+  window.connectWallet = async function () {
+    if (USER_ADDR) { menu().classList.toggle("open"); return; }
+    if (!window.ethereum) { alert(zh() ? "未检测到 MetaMask，请先安装钱包插件" : "MetaMask not detected. Please install a wallet first."); return; }
+    try {
+      const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accs[0]) setUser(accs[0]);
+    } catch (e) {}
+  };
+  window.switchAccount = async function () {
+    menu().classList.remove("open");
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+      const accs = await window.ethereum.request({ method: "eth_accounts" });
+      if (accs[0]) setUser(accs[0]);
+    } catch (e) {}
+  };
+  window.disconnectWallet = function () {
+    menu().classList.remove("open");
+    clearUser();
+  };
+  document.addEventListener("click", e => { const m = menu(); if (m && !e.target.closest("#acct-menu") && !e.target.closest("#connect-btn")) m.classList.remove("open"); });
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", accs => { accs && accs[0] ? setUser(accs[0]) : clearUser(); });
+    window.ethereum.request({ method: "eth_accounts" }).then(a => { if (a && a[0]) setUser(a[0]); }).catch(() => {});
+  }
+
+  async function updateMyPosition() {
+    if (!USER_ADDR) return;
+    try {
+      const [shares, nav] = await Promise.all([treasury.sharesOf(USER_ADDR), treasury.nav()]);
+      document.getElementById("pos-shares").textContent = fmt(shares);
+      const navF = parseFloat(ethers.formatEther(nav));
+      const val = parseFloat(ethers.formatEther(shares)) * navF;
+      document.getElementById("pos-value").textContent = val.toLocaleString("en-US", { maximumFractionDigits: 4 }) + " MON";
+      document.getElementById("pos-upl").textContent = "—";
+    } catch (e) {}
+  }
+
+  /* ---------- shared event loader ---------- */
+  let CACHE = null, CACHE_AT = 0;
+  async function loadEvents() {
+    if (CACHE && Date.now() - CACHE_AT < 12000) return CACHE;
+    const [acts, vetoes, deps, wds, rels, sla] = await Promise.all([
+      treasury.queryFilter("AgentAction", -9000).catch(() => []),
+      treasury.queryFilter("ActionVetoed", -9000).catch(() => []),
+      treasury.queryFilter("Deposit", -9000).catch(() => []),
+      treasury.queryFilter("Withdraw", -9000).catch(() => []),
+      escrow.queryFilter("RewardReleased", -9000).catch(() => []),
+      escrow.queryFilter("Slashed", -9000).catch(() => [])
+    ]);
+    CACHE = { acts, vetoes, deps, wds, rels, sla };
+    CACHE_AT = Date.now();
+    return CACHE;
+  }
+
+  /* ---------- activity page: full live feed + filters ---------- */
+  let ACT_FILTER = "all";
+  const FILTER_BTNS = ["all", "res", "exe", "risk", "set", "alert", "veto"];
+  document.querySelectorAll(".filter-row button").forEach((b, i) => {
+    b.onclick = () => {
+      ACT_FILTER = FILTER_BTNS[i] || "all";
+      document.querySelectorAll(".filter-row button").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+      renderActivity();
+    };
+  });
+
+  function actRow(kind, log, ts) {
+    const tx = '<a class="hash" target="_blank" href="' + EXPLORER + "/tx/" + log.transactionHash + '">' + short(log.transactionHash) + "</a>";
+    const T = '<td class="mono" style="color:var(--ink-3);font-size:12px">' + ts + "</td>";
+    if (kind === "act") {
+      const ag = AGENTS[log.args[0].toLowerCase()] || [log.args[1], "var(--ink-3)"];
+      return "<tr>" + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:' + ag[1] + '"></span>' + ag[0] + "</span></td>" +
+        '<td><span class="tag tag-orange">' + esc(log.args[2]) + "</span></td>" +
+        '<td class="mono">' + fmt(log.args[4]) + " MON</td>" +
+        '<td class="reason-cell">' + esc(log.args[5]) + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-green">' + (zh() ? "已批准" : "Approved") + "</span></td></tr>";
+    }
+    if (kind === "veto") {
+      const g = AGENTS[log.args[1].toLowerCase()] || ["Guardian", "var(--red)"];
+      return '<tr class="veto-row">' + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:' + g[1] + '"></span>' + g[0] + "</span></td>" +
+        '<td><span class="tag tag-red">Veto</span></td><td class="mono">—</td>' +
+        '<td class="reason-cell">' + esc(log.args[2]) + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-red">' + (zh() ? "已拦截" : "Blocked") + "</span></td></tr>";
+    }
+    if (kind === "dep") {
+      return "<tr>" + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:var(--green)"></span>' + short(log.args[0]) + "</span></td>" +
+        '<td><span class="tag tag-green">Deposit</span></td><td class="mono">' + fmt(log.args[1]) + " MON</td>" +
+        '<td class="reason-cell">' + (zh() ? "存入，铸造份额 " : "deposited, shares ") + fmt(log.args[2]) + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-green">' + (zh() ? "已确认" : "Confirmed") + "</span></td></tr>";
+    }
+    if (kind === "wd") {
+      return "<tr>" + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:var(--amber)"></span>' + short(log.args[0]) + "</span></td>" +
+        '<td><span class="tag tag-amber">Withdraw</span></td><td class="mono">' + fmt(log.args[2]) + " MON</td>" +
+        '<td class="reason-cell">' + (zh() ? "赎回份额 " : "redeemed shares ") + fmt(log.args[1]) + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-green">' + (zh() ? "已确认" : "Confirmed") + "</span></td></tr>";
+    }
+    if (kind === "rel") {
+      const total = log.args[2].reduce((s, x) => s + x, 0n);
+      return "<tr>" + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:var(--green)"></span>Ledger</span></td>' +
+        '<td><span class="tag tag-green">Settle</span></td><td class="mono">' + fmt(total) + " MON</td>" +
+        '<td class="reason-cell">Escrow #' + log.args[0].toString() + (zh() ? " 按权重释放给 " : " released to ") + log.args[1].length + (zh() ? " 个 Agent" : " agents") + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-green">' + (zh() ? "已结算" : "Settled") + "</span></td></tr>";
+    }
+    if (kind === "sla") {
+      return '<tr class="veto-row">' + T + "<td>" + '<span class="a-agent"><span class="a-dot" style="background:var(--red)"></span>Ledger</span></td>' +
+        '<td><span class="tag tag-red">Slash</span></td><td class="mono">−' + fmt(log.args[1]) + " MON</td>" +
+        '<td class="reason-cell">Escrow #' + log.args[0].toString() + (zh() ? " 任务失败罚没，资金回流金库" : " slashed, funds returned to vault") + "</td><td>" + tx + "</td>" +
+        '<td><span class="tag tag-red">' + (zh() ? "已罚没" : "Slashed") + "</span></td></tr>";
+    }
+    return "";
+  }
+
+  async function renderActivity() {
+    const body = document.getElementById("activity-body");
+    if (!body) return;
+    try {
+      const c = await loadEvents();
+      let rows = [];
+      const push = (arr, kind) => arr.forEach(l => rows.push({ kind, l, bn: l.blockNumber, li: l.index }));
+      if (ACT_FILTER === "all" || ACT_FILTER === "exe") push(c.acts, "act");
+      if (ACT_FILTER === "all" || ACT_FILTER === "risk" || ACT_FILTER === "veto") push(c.vetoes, "veto");
+      if (ACT_FILTER === "all") { push(c.deps, "dep"); push(c.wds, "wd"); }
+      if (ACT_FILTER === "all" || ACT_FILTER === "set") { push(c.rels, "rel"); push(c.sla, "sla"); }
+      if (ACT_FILTER === "res" || ACT_FILTER === "alert") { /* Scout/Sentinel act off-chain → empty note */ }
+      rows.sort((a, b) => b.bn - a.bn || b.li - a.li);
+      rows = rows.slice(0, 60);
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-3);padding:28px">' +
+          (zh() ? "该角色动作在链下产生（不上链）" : "This role acts off-chain") + "</td></tr>";
+        return;
+      }
+      const blocks = await Promise.all(rows.slice(0, 60).map(r => provider.getBlock(r.bn).catch(() => null)));
+      body.innerHTML = rows.map((r, i) => {
+        const b = blocks[i];
+        const ts = b ? new Date(Number(b.timestamp) * 1000).toTimeString().slice(0, 8) : "";
+        return actRow(r.kind, r.l, ts);
+      }).join("");
+      const foot = document.querySelector(".act-foot");
+      if (foot) foot.textContent = (zh() ? "实时读自 Monad 测试网 · 已加载 " : "Live from Monad Testnet · loaded ") + rows.length + (zh() ? " 条链上记录 · 每 15s 自动刷新" : " on-chain records · auto-refresh 15s");
+    } catch (e) {}
+  }
+
+  /* ---------- agents page: live counts ---------- */
+  async function renderAgentCounts() {
+    try {
+      const c = await loadEvents();
+      const cards = document.querySelectorAll(".agent-card");
+      const setFirst = (idx, val) => { const el = cards[idx] && cards[idx].querySelector(".m-item .v"); if (el) el.textContent = val; };
+      const countBy = addr => c.acts.filter(l => l.args[0].toLowerCase() === addr).length;
+      setFirst(0, "off-chain");
+      setFirst(1, countBy("0xe0fcc0b99692b136ec62819e5b059b850fe93bf1").toLocaleString());
+      setFirst(2, c.vetoes.length.toLocaleString());
+      setFirst(3, (c.rels.length + c.sla.length).toLocaleString());
+      setFirst(4, "off-chain");
+    } catch (e) {}
+  }
+
+  /* ---------- dashboard: live escrow settlements ---------- */
+  async function renderEscrow() {
+    const body = document.getElementById("escrow-body");
+    if (!body) return;
+    try {
+      const c = await loadEvents();
+      const rows = [];
+      c.rels.forEach(l => rows.push({ kind: "rel", l, bn: l.blockNumber, li: l.index }));
+      c.sla.forEach(l => rows.push({ kind: "sla", l, bn: l.blockNumber, li: l.index }));
+      rows.sort((a, b) => b.bn - a.bn || b.li - a.li);
+      if (!rows.length) return;
+      body.innerHTML = rows.slice(0, 10).map(r => {
+        const tx = '<a class="hash" target="_blank" href="' + EXPLORER + "/tx/" + r.l.transactionHash + '">' + short(r.l.transactionHash) + "</a>";
+        if (r.kind === "rel") {
+          const amts = r.l.args[2].map(x => fmt(x, 3));
+          const total = r.l.args[2].reduce((s, x) => s + x, 0n);
+          return "<tr><td class=\"mono\">#" + r.l.args[0].toString() + "</td><td class=\"mono\">" + fmt(total) + " MON</td>" +
+            '<td class="mono" style="color:var(--ink-2)">' + amts.join(" / ") + "</td>" +
+            '<td><span class="tag tag-green">' + (zh() ? "已释放" : "Released") + "</span></td><td>" + tx + "</td></tr>";
+        }
+        return "<tr><td class=\"mono\">#" + r.l.args[0].toString() + "</td><td class=\"mono\">—</td>" +
+          '<td class="mono" style="color:var(--ink-3)">' + (zh() ? "—— 任务失败 ——" : "— task failed —") + "</td>" +
+          '<td><span class="tag tag-red">' + (zh() ? "已罚没 −" : "Slashed −") + fmt(r.l.args[1]) + "</span></td><td>" + tx + "</td></tr>";
+      }).join("");
+    } catch (e) {}
+  }
+
+  function tick() { renderActivity(); renderAgentCounts(); renderEscrow(); if (USER_ADDR) updateMyPosition(); }
+  tick();
+  setInterval(tick, 15000);
 })();
 </script>
 </body>
