@@ -28,13 +28,16 @@ contract Smoke is Script {
         address runner = deployments.readAddress(".agents.Runner");
         address guardian = deployments.readAddress(".agents.Guardian");
         address ledger = deployments.readAddress(".agents.Ledger");
+        address deployer = vm.addr(deployerKey);
         require(vm.addr(runnerKey) == runner, "runner key mismatch");
         require(vm.addr(guardianKey) == guardian, "guardian key mismatch");
         require(vm.addr(ledgerKey) == ledger, "ledger key mismatch");
 
-        vm.startBroadcast(deployerKey);
-        treasury.deposit{value: 0.01 ether}();
-        vm.stopBroadcast();
+        if (treasury.sharesOf(deployer) < 0.01 ether) {
+            vm.startBroadcast(deployerKey);
+            treasury.deposit{value: 0.01 ether}();
+            vm.stopBroadcast();
+        }
 
         vm.startBroadcast(guardianKey);
         treasury.approveProposal(PROPOSAL_ID);
