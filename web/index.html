@@ -942,10 +942,18 @@ function connectWallet() {
     } catch (e) {}
   }
 
-  /* ---------- shared event loader ---------- */
+  /* ---------- shared event loader (server-side history + live 100-block delta) ---------- */
   let CACHE = null, CACHE_AT = 0;
   async function loadEvents() {
     if (CACHE && Date.now() - CACHE_AT < 12000) return CACHE;
+    let hist = { acts: [], vetoes: [], deps: [], wds: [], rels: [], sla: [] };
+    try {
+      const r = await fetch("./history.json", { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.events) for (const k of Object.keys(hist)) if (Array.isArray(j.events[k])) hist[k] = j.events[k];
+      }
+    } catch (e) {}
     const [acts, vetoes, deps, wds, rels, sla] = await Promise.all([
       treasury.queryFilter("AgentAction", -100).catch(() => []),
       treasury.queryFilter("ActionVetoed", -100).catch(() => []),
@@ -954,7 +962,20 @@ function connectWallet() {
       escrow.queryFilter("RewardReleased", -100).catch(() => []),
       escrow.queryFilter("Slashed", -100).catch(() => [])
     ]);
-    CACHE = { acts, vetoes, deps, wds, rels, sla };
+    const merge = (base, live) => {
+      const seen = new Set(base.map(l => l.transactionHash + ":" + l.index));
+      live.forEach(l => {
+        const k = l.transactionHash + ":" + l.index;
+        if (!seen.has(k)) { seen.add(k); base.push({ args: Array.from(l.args), blockNumber: l.blockNumber, transactionHash: l.transactionHash, index: l.index, ts: 0 }); }
+      });
+      base.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
+      return base;
+    };
+    CACHE = {
+      acts: merge(hist.acts, acts), vetoes: merge(hist.vetoes, vetoes),
+      deps: merge(hist.deps, deps), wds: merge(hist.wds, wds),
+      rels: merge(hist.rels, rels), sla: merge(hist.sla, sla)
+    };
     CACHE_AT = Date.now();
     return CACHE;
   }
@@ -1025,6 +1046,14 @@ function connectWallet() {
     } catch (e) { return []; }
   }
 
+  async function loadResearch() {
+    try {
+      const res = await fetch("./research.json", { cache: "no-store" });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (e) { return []; }
+  }
+
   async function renderActivity() {
     const body = document.getElementById("activity-body");
     if (!body) return;
@@ -1036,7 +1065,22 @@ function connectWallet() {
       if (ACT_FILTER === "all" || ACT_FILTER === "risk" || ACT_FILTER === "veto") push(c.vetoes, "veto");
       if (ACT_FILTER === "all") { push(c.deps, "dep"); push(c.wds, "wd"); }
       if (ACT_FILTER === "all" || ACT_FILTER === "set") { push(c.rels, "rel"); push(c.sla, "sla"); }
-      if (ACT_FILTER === "res") { /* Scout acts off-chain → empty note */ }
+      if (ACT_FILTER === "res") {
+        const notes = await loadResearch();
+        if (notes.length) {
+          body.innerHTML = notes.slice(0, 20).map(a =>
+            '<tr><td class="mono" style="color:var(--ink-3);font-size:12px">' + a.time + "</td>" +
+            '<td><span class="a-agent"><span class="a-dot" style="background:#0F6E56"></span>Scout</span></td>' +
+            '<td><span class="tag" style="background:#E1F5EE;color:#0F6E56;border:1px solid rgba(15,110,86,.25)">' + (zh() ? "研报" : "Research") + "</span></td>" +
+            '<td class="mono">—</td><td class="reason-cell"><b>' + a.title + "</b> · " + a.body + "</td>" +
+            '<td class="mono" style="color:var(--ink-3)">off-chain</td>' +
+            '<td><span class="tag" style="background:#E1F5EE;color:#0F6E56">' + (a.conviction === "high" ? (zh() ? "高置信" : "High") : (zh() ? "中置信" : "Medium")) + "</span></td></tr>"
+          ).join("");
+          const footR = document.querySelector(".act-foot");
+          if (footR) footR.textContent = zh() ? "Scout 链下研究流 · 基于 NAV/TVL/事件分布生成 · 每 75s 更新" : "Scout off-chain research feed · auto-refresh 75s";
+          return;
+        }
+      }
       if (ACT_FILTER === "alert") {
         const alerts = await loadAlerts();
         if (alerts.length) {
@@ -1063,7 +1107,8 @@ function connectWallet() {
       const blocks = await Promise.all(rows.slice(0, 60).map(r => provider.getBlock(r.bn).catch(() => null)));
       body.innerHTML = rows.map((r, i) => {
         const b = blocks[i];
-        const ts = b ? new Date(Number(b.timestamp) * 1000).toTimeString().slice(0, 8) : "";
+        const ts = b ? new Date(Number(b.timestamp) * 1000).toTimeString().slice(0, 8)
+          : (r.l.ts ? new Date(r.l.ts * 1000).toTimeString().slice(0, 8) : "");
         return actRow(r.kind, r.l, ts);
       }).join("");
       const foot = document.querySelector(".act-foot");
