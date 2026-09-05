@@ -753,9 +753,9 @@ function connectWallet() {
       } catch (e) {}
 
       const [acts, vetoes, deps] = await Promise.all([
-        treasury.queryFilter("AgentAction", -9000).catch(() => []),
-        treasury.queryFilter("ActionVetoed", -9000).catch(() => []),
-        treasury.queryFilter("Deposit", -9000).catch(() => [])
+        treasury.queryFilter("AgentAction", -100).catch(() => []),
+        treasury.queryFilter("ActionVetoed", -100).catch(() => []),
+        treasury.queryFilter("Deposit", -100).catch(() => [])
       ]);
       document.getElementById("lv-actions").textContent = (acts.length + vetoes.length + deps.length).toLocaleString();
       const rows = [];
@@ -947,12 +947,12 @@ function connectWallet() {
   async function loadEvents() {
     if (CACHE && Date.now() - CACHE_AT < 12000) return CACHE;
     const [acts, vetoes, deps, wds, rels, sla] = await Promise.all([
-      treasury.queryFilter("AgentAction", -9000).catch(() => []),
-      treasury.queryFilter("ActionVetoed", -9000).catch(() => []),
-      treasury.queryFilter("Deposit", -9000).catch(() => []),
-      treasury.queryFilter("Withdraw", -9000).catch(() => []),
-      escrow.queryFilter("RewardReleased", -9000).catch(() => []),
-      escrow.queryFilter("Slashed", -9000).catch(() => [])
+      treasury.queryFilter("AgentAction", -100).catch(() => []),
+      treasury.queryFilter("ActionVetoed", -100).catch(() => []),
+      treasury.queryFilter("Deposit", -100).catch(() => []),
+      treasury.queryFilter("Withdraw", -100).catch(() => []),
+      escrow.queryFilter("RewardReleased", -100).catch(() => []),
+      escrow.queryFilter("Slashed", -100).catch(() => [])
     ]);
     CACHE = { acts, vetoes, deps, wds, rels, sla };
     CACHE_AT = Date.now();
